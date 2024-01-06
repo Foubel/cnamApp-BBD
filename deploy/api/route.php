@@ -16,13 +16,16 @@
 	$app->post('/api/utilisateur/login', 'postLogin');
 
 	$app->post('/api/utilisateur/register', 'postRegister');
-
-	$app->get('/{routes:.+}', function ($request, $response, $args) {
-		return $response->write(file_get_contents(__DIR__ . 'index.html'));
+	
+	$app->get('[/{params:.*}]', function ($request, $response, $args) {
+		$indexContent = file_get_contents('index.html');
+	
+		$response->getBody()->write($indexContent);
+	
+		return $response;
 	});
 	
-
-
+	
 	
 	
 
