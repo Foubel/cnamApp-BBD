@@ -18,14 +18,9 @@
 	$app->post('/api/utilisateur/register', 'postRegister');
 	
 	$app->get('[/{params:.*}]', function ($request, $response, $args) {
-		$indexContent = file_get_contents('index.html');
+		$indexContent = file_get_contents('/var/www/html/index.html');
 	
 		$response->getBody()->write($indexContent);
 	
 		return $response;
 	});
-	
-	
-	
-	
-
