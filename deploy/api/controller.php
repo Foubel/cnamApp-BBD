@@ -16,36 +16,39 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 	    $response->getBody()->write(json_encode ($array));
 	    return $response;
 	}
-	
-	function  getSearchCalatogue (Request $request, Response $response, $args) {
-	    $filtre = $args['filtre'];
-	    $flux = '[{"titre":"linux","ref":"001","prix":"20"},{"titre":"java","ref":"002","prix":"21"},{"titre":"windows","ref":"003","prix":"22"},{"titre":"angular","ref":"004","prix":"23"},{"titre":"unix","ref":"005","prix":"25"},{"titre":"javascript","ref":"006","prix":"19"},{"titre":"html","ref":"007","prix":"15"},{"titre":"css","ref":"008","prix":"10"}]';
-	   
-	    if ($filtre) {
-	      $data = json_decode($flux, true); 
-	    	
-		$res = array_filter($data, function($obj) use ($filtre)
-		{ 
-		    return strpos($obj["titre"], $filtre) !== false;
-		});
-		$response->getBody()->write(json_encode(array_values($res)));
-	    } else {
-		 $response->getBody()->write($flux);
-	    }
-
-	    return addHeaders ($response);
-	}
 
 	// API Nécessitant un Jwt valide
 	function getCatalogue (Request $request, Response $response, $args) {
-	    $flux = '[{"titre":"linux","ref":"001","prix":"20"},{"titre":"java","ref":"002","prix":"21"},{"titre":"windows","ref":"003","prix":"22"},{"titre":"angular","ref":"004","prix":"23"},{"titre":"unix","ref":"005","prix":"25"},{"titre":"javascript","ref":"006","prix":"19"},{"titre":"html","ref":"007","prix":"15"},{"titre":"css","ref":"008","prix":"10"}]';
-	    $data = json_decode($flux, true); 
-	    
-	    $response->getBody()->write(json_encode($data));
-	    
-	    return addHeaders ($response);
-	}
+		$queryParams = $request->getQueryParams();
 
+	    $catalogue = json_decode('[ { "id": 1, "name": "Ordinateur portable", "description": "Un ordinateur portable fiable pour vos besoins quotidiens", "price": 499.99 }, { "id": 2, "name": "Casque audio", "description": "Un casque audio avec une qualité de son exceptionnelle", "price": 249.99 }, { "id": 3, "name": "Clavier sans fil", "description": "Un clavier sans fil pour une meilleure expérience utilisateur", "price": 29.99 }, { "id": 4, "name": "Souris bluetooth", "description": "Une souris bluetooth pour une meilleure expérience utilisateur", "price": 19.99 }, { "id": 5, "name": "Disque dur SSD", "description": "Un disque dur SSD de 512Go", "price": 149.99 }, { "id": 6, "name": "Tablette Samsung", "description": "Une tablette Samsung Galaxy Tab S6", "price": 399.99 }, { "id": 7, "name": "Chargeur Samsung", "description": "Un chargeur Samsung 45W", "price": 79.99 }, { "id": 8, "name": "Écouteurs Samsung", "description": "Des écouteurs Samsung Galaxy Buds+", "price": 129.99 }, { "id": 9, "name": "Écouteurs Apple", "description": "Des écouteurs Apple AirPods Pro", "price": 199.99 }, { "id": 10, "name": "Chargeur Apple", "description": "Un chargeur Apple 20W", "price": 29.99 }, { "id": 11, "name": "Tablette Apple", "description": "Une tablette Apple iPad Pro", "price": 899.99 }, { "id": 12, "name": "Ordinateur portable Apple", "description": "Un ordinateur portable Apple MacBook Pro", "price": 1499.99 }, { "id": 13, "name": "Clavier Apple", "description": "Un clavier Apple Magic Keyboard", "price": 99.99 } ]', true);
+
+		if (!empty($queryParams)) {
+			$filteredCatalogue = array_filter($catalogue, function ($item) use ($queryParams) {
+	
+				if (!empty($queryParams['id']) && $item['id'] != $queryParams['id']) {
+					return false;
+				}
+				if (!empty($queryParams['name']) && stripos($item['name'], $queryParams['name']) === false) {
+					return false;
+				}
+				if (!empty($queryParams['description']) && stripos($item['description'], $queryParams['description']) === false) {
+					return false;
+				}
+				if (!empty($queryParams['price']) && strpos((string) $item['price'], (string) $queryParams['price']) === false) {
+					return false;
+				}				  
+	
+				return true;
+			});
+			$response->getBody()->write(json_encode($filteredCatalogue));
+		} else {
+			$response->getBody()->write(json_encode($catalogue));
+		}
+	
+		return addHeaders($response);
+	}
+	
 	function optionsUtilisateur (Request $request, Response $response, $args) {
 	    
 	    // Evite que le front demande une confirmation à chaque modification
@@ -56,54 +59,25 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 	// API Nécessitant un Jwt valide
 	function getUtilisateur (Request $request, Response $response, $args) {
-	    global $entityManager;
 	    
 	    $payload = getJWTToken($request);
 	    $login  = $payload->userid;
 	    
-	    $utilisateurRepository = $entityManager->getRepository('Utilisateurs');
-	    $utilisateur = $utilisateurRepository->findOneBy(array('login' => $login));
-	    if ($utilisateur) {
-		$data = array('nom' => $utilisateur->getNom(), 'prenom' => $utilisateur->getPrenom());
-		$response = addHeaders ($response);
-		$response = createJwT ($response);
-		$response->getBody()->write(json_encode($data));
-	    } else {
-		$response = $response->withStatus(404);
-	    }
-
+		$flux = '{"nom":"martin","prenom":"jean"}';
+	    
+	    $response->getBody()->write($flux);
+	    
 	    return addHeaders ($response);
 	}
 
 	// APi d'authentification générant un JWT
 	function postLogin (Request $request, Response $response, $args) {   
-	    global $entityManager;
-	    $err=false;
-	    $body = $request->getParsedBody();
-	    $login = $body ['login'] ?? "";
-	    $pass = $body ['password'] ?? "";
-
-	    if (!preg_match("/[a-zA-Z0-9]{1,20}/",$login))   {
-		$err = true;
-	    }
-	    if (!preg_match("/[a-zA-Z0-9]{1,20}/",$pass))  {
-		$err=true;
-	    }
-	    if (!$err) {
-		$utilisateurRepository = $entityManager->getRepository('Utilisateurs');
-		$utilisateur = $utilisateurRepository->findOneBy(array('login' => $login, 'password' => $pass));
-		if ($utilisateur and $login == $utilisateur->getLogin() and $pass == $utilisateur->getPassword()) {
-		    $response = addHeaders ($response);
-		    $response = createJwT ($response);
-		    $data = array('nom' => $utilisateur->getNom(), 'prenom' => $utilisateur->getPrenom());
-		    $response->getBody()->write(json_encode($data));
-		} else {          
-		    $response = $response->withStatus(403);
-		}
-	    } else {
-		$response = $response->withStatus(500);
-	    }
-
+	    
+		$flux = '{"nom":"martin","prenom":"jean"}';
+	    
+	    $response = createJwT ($response);
+	    $response->getBody()->write($flux );
+	    
 	    return addHeaders ($response);
 	}
 
