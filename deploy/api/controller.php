@@ -108,14 +108,18 @@ require_once '../bootstrap.php';
 		$nom = $data['nom'] ?? "";
 		$prenom = $data['prenom'] ?? "";
 		$adresse = $data['adresse'] ?? "";
-		$codePostal = $data['codePostal'] ?? "";
+		$codePostal = $data['codePostal'] ?? "";	
 		$ville = $data['ville'] ?? "";
 		$email = $data['email'] ?? "";
 		$sexe = $data['sexe'] ?? "";
 		$login = $data['login'] ?? "";
 		$password = $data['password'] ?? "";
 		$telephone = $data['telephone'] ?? "";
-	
+
+		if (!preg_match("/^\d{5}$/", $codePostal)) {
+			return $response->withStatus(400)->write(json_encode(['error' => 'Invalid postal code format']));
+		}
+
 		if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 			return $response->withStatus(400)
 							->withHeader('Content-Type', 'application/json')
